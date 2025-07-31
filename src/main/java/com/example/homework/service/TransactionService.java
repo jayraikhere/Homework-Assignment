@@ -15,7 +15,11 @@ import org.springframework.stereotype.Service;
 import com.example.homework.dto.CustomerDto;
 import com.example.homework.dto.TransactionDto;
 import com.example.homework.entity.Transaction;
+import com.example.homework.exception.ValidationException;
 import com.example.homework.repository.TransactionRepository;
+import com.example.homework.utility.RewardCalculationUtility;
+import com.example.homework.utility.RewardCalculationUtility.MonthlyRewardRecord;
+import com.example.homework.utility.TransactionMapper;
 
 @Service
 public class TransactionService {
@@ -30,115 +34,85 @@ public class TransactionService {
 
 		Iterable<Transaction> dbTransactions = transactionRepository.findAll();
 
-		return mapTransactions(dbTransactions);
+		return TransactionMapper.mapToTransactionDtos(dbTransactions);
 	}
 
-	// Method to map Transaction object to TransactionDto object
-	private List<TransactionDto> mapTransactions(Iterable<Transaction> dbTransactions) {
+	public List<CustomerDto> getRewardsForCustomers(Long customerId, Integer fromMonth, Integer toMonth)
+			throws ValidationException {
 
-		List<TransactionDto> transactions = new ArrayList<>();
+		LOG.info("Fetching transactions for customerId: {}, fromMonth: {}, toMonth: {}", customerId, fromMonth,
+				toMonth);
 
-		dbTransactions.forEach(transaction -> {
-
-			TransactionDto transactionDto = new TransactionDto();
-
-			transactionDto.setTransactionId(transaction.getTransactionId());
-
-			transactionDto.setCustomerId(transaction.getCustomer().getCustomerId());
-
-			transactionDto.setBillingPrice(transaction.getBillingPrice());
-
-			transactionDto.setBillingDate(transaction.getBillingDate());
-
-			transactions.add(transactionDto);
-
-		});
-
-		return transactions;
-
-	}
-
-	public List<CustomerDto> getRewardsForCustomers(Long customerId) {
-
-		LOG.info("Fetching all transactions of customerId: {}", customerId);
-
-		List<Transaction> transactions = transactionRepository.findByCustomerId(String.valueOf(customerId));
+		List<Transaction> transactions = transactionRepository.findByCustomerIdAndDateRange(String.valueOf(customerId),
+				fromMonth, toMonth);
 
 		List<CustomerDto> customers = new ArrayList<CustomerDto>();
 
+		if (transactions.isEmpty()) {
+			return customers;
+		}
+
 		MonthlyRewardRecord monthlyRewardRecord = calculateRewardForMonth(transactions);
 
-		Long totalReward = monthlyRewardRecord.firstMonthReward() + monthlyRewardRecord.secondMonthReward()
-				+ monthlyRewardRecord.thirdMonthReward();
-
 		CustomerDto customerDto = new CustomerDto();
-
 		customerDto.setCustomerId(Long.valueOf(customerId));
-
 		customerDto.setCustomerName(transactions.get(0).getCustomer().getCustomerName());
-
-		customerDto.setTotalRewards(totalReward);
-
-		customerDto.setFirstMonthRewards(monthlyRewardRecord.firstMonthReward());
-
-		customerDto.setSecondMonthRewards(monthlyRewardRecord.secondMonthReward());
-
-		customerDto.setThirdMonthRewards(monthlyRewardRecord.thirdMonthReward());
+		customerDto.setTotalRewards(monthlyRewardRecord.getTotalReward());
+		customerDto.setMonthlyRewards(monthlyRewardRecord.getMonthlyRewards());
 
 		customers.add(customerDto);
 
 		return customers;
 	}
 
-	private MonthlyRewardRecord calculateRewardForMonth(List<Transaction> transactions) {
+	private MonthlyRewardRecord calculateRewardForMonth(List<Transaction> transactions) throws ValidationException {
 
-		Long firstMonthReward = 0L;
+		if (transactions == null) {
+			throw new ValidationException("Transactions list cannot be null");
+		}
 
-		Long secondMonthReward = 0L;
+		Map<Month, Long> monthlyTotalMap = new HashMap<>();
 
-		Long thirdMonthReward = 0L;
-
-		Map<Month, Long> monthlyRewardMap = new HashMap<Month, Long>();
-
-		transactions.forEach(transaction -> {
+		// First, sum up all transactions by month
+		for (Transaction transaction : transactions) {
+			if (transaction == null) {
+				throw new ValidationException("Transaction cannot be null");
+			}
+			if (transaction.getBillingDate() == null) {
+				throw new ValidationException("Transaction billing date cannot be null");
+			}
+			if (transaction.getBillingPrice() == null) {
+				throw new ValidationException("Transaction billing price cannot be null");
+			}
 
 			Month month = transaction.getBillingDate().getMonth();
 
-			if (monthlyRewardMap.containsKey(month)) {
+			monthlyTotalMap.merge(month, transaction.getBillingPrice(), Long::sum);
+		}
 
-				monthlyRewardMap.put(month, monthlyRewardMap.get(month) + transaction.getBillingPrice());
+		// Calculate rewards for each month
+		Map<String, Long> monthlyRewards = new HashMap<>();
 
-			} else {
+		for (Map.Entry<Month, Long> entry : monthlyTotalMap.entrySet()) {
+			try {
 
-				monthlyRewardMap.put(month, transaction.getBillingPrice());
+				monthlyRewards.put(entry.getKey().toString(),
+						RewardCalculationUtility.calculateReward(entry.getValue()));
 
-			}
-
-		});
-
-		for (Month entry : monthlyRewardMap.keySet()) {
-
-			if (firstMonthReward.equals(0L)) {
-
-				firstMonthReward = calculateReward(monthlyRewardMap.get(entry));
-
-			} else if (secondMonthReward.equals(0L))
-
-			{
-
-				secondMonthReward = calculateReward(monthlyRewardMap.get(entry));
-
-			} else {
-
-				thirdMonthReward = calculateReward(monthlyRewardMap.get(entry));
-
+			} catch (ValidationException e) {
+				// Log the error and skip invalid entries
+				LOG.error("Error calculating rewards for month {}: {}", entry.getKey(), e.getMessage());
 			}
 		}
 
-		return new MonthlyRewardRecord(firstMonthReward, secondMonthReward, thirdMonthReward);
+		return new MonthlyRewardRecord(monthlyRewards);
 	}
 
-	public List<CustomerDto> getRewardsForAllCustomers() {
+	public List<CustomerDto> getRewardsForAllCustomers() throws ValidationException {
+
+		if (transactionRepository == null) {
+			throw new ValidationException("Transaction repository is not initialized");
+		}
 
 		Iterable<Transaction> transactions = transactionRepository.findAll();
 
@@ -151,25 +125,13 @@ public class TransactionService {
 		List<CustomerDto> customers = new ArrayList<CustomerDto>();
 
 		for (Entry<Long, List<Transaction>> transaction : transactionsByCustomerIdMap.entrySet()) {
-
 			MonthlyRewardRecord monthlyRewardRecord = calculateRewardForMonth(transaction.getValue());
 
-			Long totalReward = monthlyRewardRecord.firstMonthReward() + monthlyRewardRecord.secondMonthReward()
-					+ monthlyRewardRecord.thirdMonthReward();
-
 			CustomerDto customerDto = new CustomerDto();
-
 			customerDto.setCustomerId(transaction.getKey());
-
 			customerDto.setCustomerName(transaction.getValue().get(0).getCustomer().getCustomerName());
-
-			customerDto.setTotalRewards(totalReward);
-
-			customerDto.setFirstMonthRewards(monthlyRewardRecord.firstMonthReward());
-
-			customerDto.setSecondMonthRewards(monthlyRewardRecord.secondMonthReward());
-
-			customerDto.setThirdMonthRewards(monthlyRewardRecord.thirdMonthReward());
+			customerDto.setTotalRewards(monthlyRewardRecord.getTotalReward());
+			customerDto.setMonthlyRewards(monthlyRewardRecord.getMonthlyRewards());
 
 			customers.add(customerDto);
 
@@ -179,25 +141,4 @@ public class TransactionService {
 
 	}
 
-	private Long calculateReward(Long price) {
-
-		Long reward = 0L;
-
-		if (price > 100) {
-
-			reward += (price - 100) * 2 + 50 * 1;
-
-		} else {
-
-			reward += (price - 50) * 1;
-
-		}
-
-		return reward;
-
-	}
-
-}s
-
-final record MonthlyRewardRecord(Long firstMonthReward, Long secondMonthReward, Long thirdMonthReward) {
 }

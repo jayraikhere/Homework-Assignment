@@ -10,16 +10,16 @@ import jakarta.persistence.ManyToOne;
 @Entity
 public class Transaction {
 
-	@Id
-	Long transactionId;
+    @Id
+    private Long transactionId;
 
-	@ManyToOne
-	@JoinColumn(name = "customer_id", nullable = false)
-	Customer customer;
+    @ManyToOne
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
 
-	Long billingPrice;
+    private Long billingPrice;
 
-	LocalDateTime billingDate;
+    private LocalDateTime billingDate;
 
 	public Long getTransactionId() {
 		return transactionId;

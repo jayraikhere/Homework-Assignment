@@ -40,74 +40,80 @@ GET /api/transactions
 **Response Format:**
 
 ```json
-
-[
-    {
-        "transactionId": 1,
-        "customerId": 101,
-        "billingPrice": 120,
-        "billingDate": "2023-04-15T14:30:00"
-    },
-...
-]
-```
-
-### Get Rewards for All Customers
-
-```
-GET /api/rewards
-```
-
-**Response Format:**
-
-```json
-
-[
-    {
-        "customerId": 101,
-        "customerName": "John Doe",
-        "totalReward": 190,
-        "firstMonthReward": 90,
-        "secondMonthReward": 50,
-        "thirdMonthReward": 50
-    },
-    ...
-]
-
+{
+    "success": true,
+    "message": "Transactions retrieved successfully",
+    "data": [
+        {
+            "transactionId": 101,
+            "customerId": 1,
+            "billingPrice": 5000,
+            "billingDate": "2025-05-03T10:30:00"
+        }
+    ],
+    "errors": null
+}
 ```
 
 ### Get Rewards for Specific Customer
 
 ```
-GET /api/rewards/customer/{customerId}
+GET /api/rewards/customer/{customerId}?fromMonth={fromMonth}&toMonth={toMonth}
 ```
 
 **Path Parameter:**
-
 - `customerId`: ID of the customer (must be positive)
 
-**Response Format:**
+**Query Parameters:**
+- `fromMonth` (optional): Starting month for rewards calculation (1-12)
+- `toMonth` (optional): Ending month for rewards calculation (1-12)
+
+**Validation Rules:**
+- Month values must be between 1 and 12
+- If provided, fromMonth must not be greater than toMonth
+- Both parameters are optional. If omitted, rewards for all months will be calculated
+
+**Success Response:**
 
 ```json
-[
-    {
-        "customerId": 101,
-        "customerName": "John Doe",
-        "totalReward": 190,
-        "firstMonthReward": 90,
-        "secondMonthReward": 50,
-        "third MonthReward": 50
-    }
-    ...
-]
+{
+    "success": true,
+    "message": "Rewards retrieved successfully for customer 1",
+    "data": [
+        {
+            "customerId": 1,
+            "customerName": "Aarav Mehta",
+            "totalRewards": 9850,
+            "monthlyRewards": {
+                "MAY": 4850,
+                "JUNE": 2550,
+                "JULY": 2450
+            }
+        }
+    ],
+    "errors": null
+}
 ```
 
 **Error Response:**
 
 ```json
 {
-    "errorCode": 500,
-    "errorMessage": "Something went wrong. Invalid customerId"
+    "success": false,
+    "message": "Customer ID must be greater than 0",
+    "data": null,
+    "errors": null
+}
+```
+
+**Validation Error Response:**
+
+```json
+{
+    "success": false,
+    "message": "From month must be between 1 and 12; To month must be between 1 and 12",
+    "data": null,
+    "errors": null
 }
 ```
 

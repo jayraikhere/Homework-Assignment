@@ -1,13 +1,26 @@
 package com.example.homework.dto;
 
+import java.util.Map;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public class CustomerDto {
 
-	String customerName;
-	Long totalRewards;
-	Long firstMonthRewards;
-	Long secondMonthRewards;
-	Long thirdMonthRewards;
-	Long customerId;
+	@NotBlank(message = "validation.customer.name.blank")
+	private String customerName;
+
+	@NotNull(message = "validation.reward.total.null")
+	@Min(value = 0, message = "validation.reward.total.min")
+	private Long totalRewards;
+
+	@NotNull(message = "validation.reward.monthly.null")
+	private Map<String, Long> monthlyRewards;
+
+	@NotNull(message = "validation.customer.id.null")
+	@Min(value = 1, message = "validation.customer.id.min")
+	private Long customerId;
 
 	public Long getCustomerId() {
 		return customerId;
@@ -33,28 +46,12 @@ public class CustomerDto {
 		this.totalRewards = totalRewards;
 	}
 
-	public Long getFirstMonthRewards() {
-		return firstMonthRewards;
+	public Map<String, Long> getMonthlyRewards() {
+		return monthlyRewards;
 	}
 
-	public void setFirstMonthRewards(Long firstMonthRewards) {
-		this.firstMonthRewards = firstMonthRewards;
-	}
-
-	public Long getSecondMonthRewards() {
-		return secondMonthRewards;
-	}
-
-	public void setSecondMonthRewards(Long secondMonthRewards) {
-		this.secondMonthRewards = secondMonthRewards;
-	}
-
-	public Long getThirdMonthRewards() {
-		return thirdMonthRewards;
-	}
-
-	public void setThirdMonthRewards(Long thirdMonthRewards) {
-		this.thirdMonthRewards = thirdMonthRewards;
+	public void setMonthlyRewards(Map<String, Long> monthlyRewards) {
+		this.monthlyRewards = monthlyRewards;
 	}
 
 }
