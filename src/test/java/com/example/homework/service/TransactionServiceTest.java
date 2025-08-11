@@ -69,7 +69,7 @@ class TransactionServiceTest {
 
 		when(transactionRepository.findAll()).thenReturn(List.of(testTransaction));
 
-		List<TransactionDto> result = transactionService.getAllTrasactions();
+		List<TransactionDto> result = transactionService.getAllTransactions();
 
 		assertNotNull(result);
 		assertEquals(1, result.size());
@@ -170,5 +170,16 @@ class TransactionServiceTest {
 		t.setBillingDate(date);
 
 		return t;
+	}
+
+	@Test
+	void getAllTransactions_EmptyTransactions() throws ValidationException {
+
+		when(transactionRepository.findAll()).thenReturn(new ArrayList<>());
+
+		List<TransactionDto> result = transactionService.getAllTransactions();
+
+		assertNotNull(result);
+		assertTrue(result.isEmpty());
 	}
 }

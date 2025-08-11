@@ -33,7 +33,7 @@ public class TransactionController {
 	@GetMapping(value = "/transactions")
 	public ResponseEntity<ApiResponse<List<TransactionDto>>> getAllTransactions() {
 
-		List<TransactionDto> transactions = transactionService.getAllTrasactions();
+		List<TransactionDto> transactions = transactionService.getAllTransactions();
 
 		ApiResponse<List<TransactionDto>> response = ApiResponse.success(transactions,
 				"Transactions retrieved successfully");

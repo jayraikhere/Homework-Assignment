@@ -33,9 +33,12 @@ public class RewardCalculationUtility {
 		// First, sum up all transactions by month
 		transactions.forEach(transaction -> {
 
-			Month month = transaction.getBillingDate().getMonth();
+			Month month = transaction.getBillingDate() != null ? transaction.getBillingDate().getMonth() : null;
 
-			monthlyTotalMap.merge(month, transaction.getBillingPrice(), Long::sum);
+			if(month != null){
+
+				monthlyTotalMap.merge(month, transaction.getBillingPrice(), Long::sum);
+			}
 		});
 
 		// Calculate rewards for each month

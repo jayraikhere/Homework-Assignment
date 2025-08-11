@@ -58,7 +58,7 @@ class TransactionControllerTest {
 	@Test
 	void getAllTransactions_Success() throws Exception {
 
-		when(transactionService.getAllTrasactions()).thenReturn(Arrays.asList(testTransactionDto));
+		when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(testTransactionDto));
 
 		MvcResult result = mockMvc.perform(get("/api/transactions")).andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON)).andReturn();

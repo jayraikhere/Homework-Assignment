@@ -30,7 +30,7 @@ public class TransactionService {
 	private Logger LOG = LogManager.getLogger(TransactionService.class);
 
 	// method to get all transactions
-	public List<TransactionDto> getAllTrasactions() {
+	public List<TransactionDto> getAllTransactions() {
 
 		Iterable<Transaction> dbTransactions = transactionRepository.findAll();
 
@@ -85,9 +85,12 @@ public class TransactionService {
 				throw new ValidationException("Transaction billing price cannot be null");
 			}
 
-			Month month = transaction.getBillingDate().getMonth();
+			Month month = transaction.getBillingDate() != null ? transaction.getBillingDate().getMonth() : null;
 
-			monthlyTotalMap.merge(month, transaction.getBillingPrice(), Long::sum);
+			if(month!=null){
+
+				monthlyTotalMap.merge(month, transaction.getBillingPrice(), Long::sum);
+			}
 		}
 
 		// Calculate rewards for each month
@@ -109,10 +112,6 @@ public class TransactionService {
 	}
 
 	public List<CustomerDto> getRewardsForAllCustomers() throws ValidationException {
-
-		if (transactionRepository == null) {
-			throw new ValidationException("Transaction repository is not initialized");
-		}
 
 		Iterable<Transaction> transactions = transactionRepository.findAll();
 
