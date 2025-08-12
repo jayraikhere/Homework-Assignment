@@ -85,9 +85,9 @@ public class TransactionService {
 				throw new ValidationException("Transaction billing price cannot be null");
 			}
 
-			Month month = transaction.getBillingDate() != null ? transaction.getBillingDate().getMonth() : null;
+			Month month = transaction.getBillingDate().getMonth();
 
-			if(month!=null){
+			if(month != null){
 
 				monthlyTotalMap.merge(month, transaction.getBillingPrice(), Long::sum);
 			}
